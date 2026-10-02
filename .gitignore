@@ -1,0 +1,23 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+
+# Diagram backups and temp files
+*.drawio.bkp
+*.bak
+*~
+*.tmp
+
+# Logs
+*.log
+logs/
