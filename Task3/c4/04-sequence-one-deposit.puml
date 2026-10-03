@@ -1,0 +1,104 @@
+@startuml
+title Одна заявка одного клиента\nОтвет идёт экрану через API Gateway. АБС этот ответ не ждёт.
+
+actor "Клиент" as client
+participant "Экраны" as ui
+participant "API Gateway" as gw
+participant "API профиля" as profile
+participant "Копия счетов" as acc
+participant "Сервис заявок" as app
+participant "Сервис ставок" as rates
+participant "СМС-шлюз" as sms
+participant "Джоб учёта" as job
+participant "Процедуры учёта" as proc
+database "База учёта" as db
+actor "Бэк-офис" as bo
+
+== Снимок счетов, вне ответа «принята» ==
+
+job -> gw : PUT /accounts\nснимок счетов, API-ключ
+gw -> app : снимок и ключ как есть\nшлюз ключ не проверяет
+app -> app : сверяет хеш ключа\nв своей базе
+app -> acc : записывает снимок\nвне ответа «принята»
+acc --> app : записано
+app --> gw : принято
+gw --> job : принято
+
+== Форма, до первого POST ==
+
+ui -> ui : создаёт Idempotency-Key\nи хранит его до показа ответа
+client -> ui : открывает форму
+ui -> gw : GET /accounts
+gw -> profile : GET /profile\nсессия клиента
+profile --> gw : clientId, phone
+gw -> acc : счета этого clientId
+acc --> gw : список
+gw --> ui : список счетов\nOracle на этом шаге нет
+client -> ui : продукт, счёт, сумма
+
+== Код ==
+
+ui -> gw : POST /otp-challenges
+gw -> app : телефон из профиля
+app -> sms : примите шаблон otp к отправке
+sms --> app : шлюз принял\nдоставку оператора не ждём
+app --> gw : challenge создан
+gw --> ui : можно вводить код
+client -> ui : код из СМС
+ui -> gw : POST /otp-checks\nвведённый код
+gw -> app : сверить код
+app -> app : код совпал с challenge
+app --> gw : код верный
+gw --> ui : можно отправлять заявку
+
+== Ответ «принята» ==
+
+ui -> gw : POST /applications\nтот же Idempotency-Key
+gw -> profile : clientId сессии\nбраузер его не подставляет
+gw -> app : заявка + clientId + ключ
+app -> app : без верного кода\nзаявку не пишет
+app -> rates : GET /rates?clientId=\nнапрямую, не через Gateway
+rates --> app : ставка этого клиента
+app -> app : пишет заявку и ответ\nодной транзакцией
+app --> gw : status=accepted
+gw --> ui : status=accepted
+ui --> client : заявка принята\nАБС в этом ответе нет
+
+== Заход джоба: кладёт заявку, человека не ждёт ==
+
+job -> gw : GET /applications?status=accepted\nAPI-ключ
+gw -> app : ключ как есть
+app -> app : сверяет хеш ключа\nв своей базе
+app --> gw : эта заявка
+gw --> job : эта заявка
+job -> proc : кладёт её в учёт
+note over job : заход закончен\nменеджера джоб не ждёт
+
+== Решение менеджера, джоба в этом шаге нет ==
+
+alt Менеджер подтверждает
+  bo -> proc : подтверждает эту заявку
+  proc -> db : открывает депозит\nбаза только хранит
+  proc -> sms : rate_confirmed,\nзатем deposit_opened\nнедоставку можно повторить
+else Менеджер отклоняет
+  bo -> proc : отклоняет эту заявку
+  proc -> db : статус rejected\nдепозит не открывается
+end
+
+== Следующий заход джоба: ack ==
+
+job -> proc : читает opened или rejected
+alt opened
+  job -> gw : POST /applications/{id}/ack\nstatus=opened
+else rejected
+  job -> gw : POST /applications/{id}/ack\nstatus=rejected
+end
+gw -> app : ack, ключ как есть
+app -> app : статус заявки\nповтор вторую не создаёт
+
+note over sms
+  99,9% включает ответ шлюза «код принят к отправке».
+  Доставка оператором и статусные СМС в 99,9% не входят.
+end note
+
+@enduml

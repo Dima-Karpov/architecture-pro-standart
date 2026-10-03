@@ -1,0 +1,42 @@
+@startgantt
+title MVP депозита — 6 месяцев\nДорожка — кто делает. Стрелка — что ждём.
+
+printscale weekly
+Project starts 2026-10-05
+saturday are closed
+sunday are closed
+
+-- Команда интернет-банка --
+[T1 API профиля] lasts 3 weeks
+[T18 Копия счетов и MS SQL] lasts 4 weeks
+[T2 Сервис ставок и база] lasts 6 weeks
+[T3 Сервис заявок и база] lasts 6 weeks
+[T4 API Gateway] starts at [T1 API профиля]'s end and lasts 4 weeks
+[T6 Заявка читает ставку] starts at [T2 Сервис ставок и база]'s end and lasts 3 weeks
+[T5 Маршруты и роли] starts at [T4 API Gateway]'s end and lasts 4 weeks
+[T7 Код через СМС-шлюз] starts at [T3 Сервис заявок и база]'s end and lasts 3 weeks
+[T9 Экраны клиента] starts at [T5 Маршруты и роли]'s end and lasts 6 weeks
+[T10 Страница ставок] starts at [T5 Маршруты и роли]'s end and lasts 4 weeks
+
+-- Команда АБС --
+[T8 Джоб забора через Gateway] starts at [T5 Маршруты и роли]'s end and lasts 4 weeks
+[T11 Очередь в Delphi] starts at [T8 Джоб забора через Gateway]'s end and lasts 4 weeks
+[T12 Открытие депозита и СМС] starts at [T11 Очередь в Delphi]'s end and lasts 3 weeks
+
+-- IT-отдел, СМС-шлюз --
+[T13 Шаблоны СМС] starts 2026-10-12 and lasts 4 weeks
+
+-- Проверки --
+[T14 Стыки канала и СМС] starts at [T5 Маршруты и роли]'s end and lasts 3 weeks
+[T15 Путь «заявка принята»] starts at [T9 Экраны клиента]'s end and lasts 2 weeks
+[T16 Сквозная проверка, не прод] starts at [T12 Открытие депозита и СМС]'s end and lasts 2 weeks
+
+-- Прод --
+[T17 Выкладка в прод] starts at [T16 Сквозная проверка, не прод]'s end and lasts 2 weeks
+
+[T7 Код через СМС-шлюз] starts at [T13 Шаблоны СМС]'s end
+[T12 Открытие депозита и СМС] starts at [T13 Шаблоны СМС]'s end
+[T14 Стыки канала и СМС] starts at [T7 Код через СМС-шлюз]'s end
+[T14 Стыки канала и СМС] starts at [T6 Заявка читает ставку]'s end
+[T16 Сквозная проверка, не прод] starts at [T15 Путь «заявка принята»]'s end
+@endgantt

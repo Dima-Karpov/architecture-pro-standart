@@ -1,0 +1,78 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include tags.inc
+
+LAYOUT_TOP_DOWN()
+
+title Контейнеры C4 — внутри интернет-банка и внутри АБС\nСервис ставок и сервис заявок — отдельные продукты.\nСтрелка от вызывающего. Под ней протокол и формат.
+
+Person(client, "Клиент", "Сессия интернет-банка", $tags="existing")
+Person(dep, "Бэк-офис депозитов", "Ставки через шлюз. Решение по заявке в АБС", $tags="existing")
+Person(credit, "Бэк-офис кредитов", "Только базовые ставки", $tags="existing")
+Person(branch, "Менеджер отделения", "Идентификация", $tags="existing")
+
+System_Boundary(ib, "Интернет-банк") {
+  Container(pay, "Монолит платежей", "ASP.NET MVC 4.5", "Платежи и текущие счета. Ядро не меняем.", $tags="existing")
+  ContainerDb(ibDb, "База интернет-банка", "MS SQL", "Сессии и данные платежей. Уже есть.", $tags="existing")
+  Container(profileApi, "API профиля", ".NET", "Новый. По сессии отдаёт clientId и телефон. База сессий уже есть.", $tags="new")
+  Container(ui, "Экраны депозита", "ASP.NET MVC", "HTML. Базы нет. Idempotency-Key создаёт экран до первого POST.", $tags="new")
+  Container(gw, "API Gateway", ".NET", "Вход людей и джоба. Своей базы нет. Ключ джоба не проверяет.", $tags="new")
+  Container(accounts, "Копия счетов", ".NET", "Список для формы. Снимок принимает от сервиса заявок. Ключ не проверяет.", $tags="new")
+  ContainerDb(accDb, "База копии счетов", "MS SQL", "accountId, маска счёта, clientId. Не Oracle.", $tags="new")
+}
+
+System_Boundary(abs, "АБС") {
+  Container(delphi, "Клиент АБС", "Delphi", "Идентификация. Подтверждение или отклонение заявки.", $tags="existing")
+  Container(job, "Джоб забора", "PL/SQL", "Вызывает API Gateway. В чужие базы не лезет.", $tags="new")
+  Container(proc, "Процедуры учёта", "PL/SQL", "Открывают или отклоняют депозит. Они зовут СМС-шлюз, не база.", $tags="new")
+  ContainerDb(oracle, "База учёта", "Oracle", "Хранилище. Сама никого не вызывает.", $tags="existing")
+}
+
+System_Boundary(ratesCtx, "Сервис ставок") {
+  Container(rates, "Сервис ставок", ".NET", "Тариф, персональная ставка, журнал.", $tags="new")
+  ContainerDb(rateDb, "База ставок", "MS SQL", "rates, personal_rates, rate_audit.", $tags="new")
+}
+
+System_Boundary(appsCtx, "Сервис заявок") {
+  Container(apps, "Сервис заявок", ".NET", "Код, приём, проверка API-ключа джоба. После сверки пишет снимок в копию. Депозит не открывает.", $tags="new")
+  ContainerDb(appDb, "База заявок", "MS SQL", "Заявки, ответы повтора, хеш API-ключа. Читает только этот сервис.", $tags="new")
+}
+
+System_Ext(sms, "СМС-шлюз", "Контракт уже есть", $tags="existing")
+System_Ext(tel, "Телеком-оператор", "Доставка на телефон", $tags="existing")
+
+Rel(client, ui, "Витрина и форма", "HTTPS, HTML", $tags="new")
+Rel(dep, ui, "Страница ставок", "HTTPS, HTML", $tags="new")
+Rel(credit, ui, "Базовые ставки", "HTTPS, HTML", $tags="new")
+Rel(ui, gw, "Вызовы экрана", "HTTPS JSON\nключ идемпотентности создал экран", $tags="new")
+
+Rel(gw, profileApi, "Кто в сессии клиента", "HTTPS JSON, GET /profile", $tags="new")
+Rel(profileApi, ibDb, "Сессия и телефон", "TDS, SQL", $tags="new")
+Rel(pay, ibDb, "Сессия платежей", "TDS, SQL", $tags="existing")
+Rel(pay, oracle, "Платежи и текущие счета", "SQL*Net, прямой SQL\nдепозитная форма этим путём не ходит", $tags="existing")
+
+Rel(gw, accounts, "Список для клиента", "HTTPS JSON, GET /accounts", $tags="new")
+Rel(accounts, accDb, "Читает и пишет копию", "TDS, SQL", $tags="new")
+Rel(gw, rates, "Ставки людей", "HTTPS JSON\nGET /rates, PUT /rates\nclientId в PUT — клиент ставки", $tags="new")
+Rel(gw, apps, "Код, приём, забор, снимок", "HTTPS JSON\nPUT /accounts и ключ джоба передаёт как есть", $tags="new")
+
+Rel(rates, rateDb, "Тариф и журнал", "TDS, SQL", $tags="new")
+Rel(apps, rates, "Ставка на момент приёма", "HTTPS JSON напрямую\nGET /rates?clientId=", $tags="new")
+Rel(apps, accounts, "Снимок после сверки ключа", "HTTPS JSON напрямую, PUT /accounts\nвне ответа «принята»", $tags="new")
+Rel(apps, appDb, "Заявка, повтор, хеш ключа", "TDS, SQL", $tags="new")
+Rel(apps, sms, "Просит принять код", "контракт шлюза, шаблон otp\nдоставку оператора не ждёт", $tags="new")
+
+Rel(job, gw, "Заявки и снимок счетов", "HTTPS JSON, API-ключ\nраз в несколько минут, не в ответе «принята»", $tags="new")
+Rel(job, proc, "Кладёт заявку в учёт", "вызов PL/SQL", $tags="new")
+Rel(branch, delphi, "Идентификация", "десктоп Delphi", $tags="existing")
+Rel(dep, delphi, "Подтверждает или отклоняет", "десктоп Delphi\nодна заявка", $tags="existing")
+Rel(delphi, oracle, "Прежняя работа в базе", "SQL*Net", $tags="existing")
+Rel(delphi, proc, "Решение по онлайн-заявке", "вызов PL/SQL", $tags="new")
+Rel(proc, oracle, "Пишет депозит или отказ", "SQL, база только хранит", $tags="new")
+Rel(proc, sms, "Статусная СМС", "контракт шлюза\nrate_confirmed или deposit_opened", $tags="new")
+
+Rel(sms, tel, "Доставка", "протокол оператора", $tags="existing")
+Rel(tel, client, "СМС", "SMS", $tags="existing")
+
+SHOW_LEGEND()
+@enduml
