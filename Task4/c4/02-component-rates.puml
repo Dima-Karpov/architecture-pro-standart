@@ -1,0 +1,34 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include tags.inc
+
+LAYOUT_TOP_DOWN()
+
+title Компоненты C4 — сервис ставок\nAPI текущих ставок, выгрузка CSV, репозиторий, MS SQL, клиент SFTP.\nСтрелка от вызывающего. Под ней протокол и формат.
+
+System(gw, "API Gateway", "Роль call-center открывает только GET /rates/current. Секрет в конфиге", $tags="existing")
+System(sftp, "SFTP банка", "Каталог выгрузки. Учётка партнёра только на чтение", $tags="new")
+
+Container_Boundary(rates, "Сервис ставок") {
+  Component(api, "API текущих ставок", ".NET", "GET /rates/current. Только базовый тариф. clientId ответ не расширяет", $tags="new")
+  Component(export, "Выгрузка CSV", ".NET", "После публикации базовой ставки и ещё раз в сутки. Персональная ставка файл не запускает", $tags="new")
+  Component(repo, "Репозиторий ставок", ".NET", "Один доступ к базовому тарифу для API и для выгрузки", $tags="existing")
+  Component(sftpClient, "Клиент SFTP", ".NET", "Кладёт готовый CSV. Неполная сборка опубликованный файл не подменяет", $tags="new")
+  ComponentDb(db, "База ставок", "MS SQL", "Базовые тарифы и журнал выгрузки. Своя база сервиса", $tags="existing")
+}
+
+Rel(gw, api, "Читает базовый тариф", "HTTPS JSON\nGET /rates/current", $tags="new")
+Rel(api, repo, "Только базовый тариф", "вызов внутри сервиса", $tags="new")
+Rel(export, repo, "Срез базовых тарифов", "вызов внутри сервиса\nпосле публикации базовой ставки и раз в сутки", $tags="new")
+Rel(repo, db, "Читает базовые тарифы", "TDS, SQL", $tags="new")
+Rel(export, db, "Журнал выгрузки", "TDS, SQL\nкто инициировал, когда опубликован, хеш", $tags="new")
+Rel(export, sftpClient, "Готовый файл", "вызов внутри сервиса", $tags="new")
+Rel(sftpClient, sftp, "Публикует CSV", "SSH, CSV\nпрошлый удачный файл остаётся", $tags="new")
+
+note as exportNote
+  Витрина, джоб и бэк-офис ходят в сервис как в ADR депозита.
+  На этой схеме их нет.
+end note
+
+SHOW_LEGEND()
+@enduml

@@ -1,0 +1,31 @@
+@startgantt
+title Передача ставок\nДорожка — кто делает. Стрелка — что ждём.\nT19 после сервиса ставок. Роль call-center после Gateway.
+
+printscale weekly
+Project starts 2026-10-05
+saturday are closed
+sunday are closed
+
+' T2 кончается 13 ноября 2026, T19 стартует в следующий понедельник.
+' T5 кончается 18 декабря 2026, роль стартует 21 декабря: ждёт и T19, и маршруты Gateway.
+' T21 идёт в том же окне, что T20. T23 и T25 заявку не ждут и выкладку депозита не держат.
+
+-- Команда интернет-банка --
+[T19 GET /rates/current] starts 2026-11-16 and lasts 3 weeks
+[T20 Выгрузка CSV на SFTP] starts at [T19 GET /rates/current]'s end and lasts 3 weeks
+[T21 Журнал выгрузки] starts at [T19 GET /rates/current]'s end and lasts 3 weeks
+[T22 Роль call-center] starts 2026-12-21 and lasts 3 weeks
+
+-- Подрядчик кол-центра --
+[T23 Экран и адаптер] starts at [T22 Роль call-center]'s end and lasts 4 weeks
+
+-- IT-отдел, SFTP --
+[T24 Каталог и учётка на чтение] starts 2026-10-12 and lasts 3 weeks
+
+-- Стык с партнёром --
+[T25 Проверка формата CSV] starts at [T20 Выгрузка CSV на SFTP]'s end and lasts 3 weeks
+
+[T20 Выгрузка CSV на SFTP] starts at [T24 Каталог и учётка на чтение]'s end
+[T21 Журнал выгрузки] starts at [T24 Каталог и учётка на чтение]'s end
+[T25 Проверка формата CSV] starts at [T21 Журнал выгрузки]'s end
+@endgantt
