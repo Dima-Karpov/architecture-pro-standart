@@ -8,11 +8,13 @@ on:
     paths:
       - "Task3/c4/**/*.puml"
       - "Task4/c4/**/*.puml"
+      - "Task5/c4/**/*.puml"
       - ".github/workflows/plantuml.yml"
   pull_request:
     paths:
       - "Task3/c4/**/*.puml"
       - "Task4/c4/**/*.puml"
+      - "Task5/c4/**/*.puml"
       - ".github/workflows/plantuml.yml"
   workflow_dispatch:
 
@@ -46,7 +48,7 @@ jobs:
       - name: Generate diagrams
         run: |
           set -euo pipefail
-          find Task3/c4 Task4/c4 -name '*.puml' -print0 | sort -z | while IFS= read -r -d '' file; do
+          find Task3/c4 Task4/c4 Task5/c4 -name '*.puml' -print0 | sort -z | while IFS= read -r -d '' file; do
             echo "render $file"
             java -jar /tmp/plantuml.jar -tsvg "$file"
           done
@@ -59,6 +61,7 @@ jobs:
           path: |
             Task3/c4/**/*.svg
             Task4/c4/**/*.svg
+            Task5/c4/**/*.svg
           if-no-files-found: warn
 
       - name: Commit diagrams
@@ -66,7 +69,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          find Task3/c4 Task4/c4 -name '*.svg' -exec git add {} +
+          find Task3/c4 Task4/c4 Task5/c4 -name '*.svg' -exec git add {} +
           if git diff --cached --quiet; then
             echo "No diagram changes"
           else

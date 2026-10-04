@@ -1,0 +1,39 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include tags.inc
+
+LAYOUT_TOP_DOWN()
+
+title Компоненты C4 — сервис заявок\nПриём кредитной заявки, старт процесса, приём решения, шаблоны СМС, MS SQL.\nСтрелка от вызывающего. Под ней протокол и формат.
+
+System(gw, "API Gateway", "Дверь контура депозита. Своей базы нет. clientId из браузера не принимается", $tags="existing")
+System(conv, "Кредитный конвейер", "Camunda. Процесс стартует после accepted", $tags="existing")
+System_Ext(sms, "СМС-шлюз", "Уже есть. Ведёт IT-отдел. Доставку не ждём", $tags="existing")
+
+Container_Boundary(apps, "Сервис заявок") {
+  Component(intake, "Приём кредитной заявки", ".NET", "Пишет заявку и ответ accepted одной транзакцией. Скоринг, конвейер и АБС этот ответ не ждут", $tags="new")
+  Component(start, "Старт процесса конвейера", ".NET", "После accepted. Заявку без отметки старта читает снова. Повтор по applicationId второй процесс не создаёт. В ответ «принята» не входит", $tags="new")
+  Component(decision, "Приём решения", ".NET", "Пишет статус по applicationId. Повтор той же пары второй раз не пишет. СМС уходит с первой записи", $tags="new")
+  Component(tpl, "Шаблоны СМС", ".NET", "otp до accepted и только для интернет-банка. Дальше credit_branch, credit_rejected, credit_status", $tags="new")
+  ComponentDb(db, "База заявок", "MS SQL", "Заявка, сохранённый ответ, applicationId", $tags="existing")
+}
+
+Rel_D(gw, intake, "Код и приём заявки", "HTTPS JSON\nPOST /otp-challenges, POST /otp-checks,\nPOST /credit-applications\nневерный код заявку не создаёт", $tags="new")
+Rel_D(intake, start, "После accepted", "вызов внутри сервиса\nв ответ клиенту не входит", $tags="new")
+Rel_R(intake, tpl, "Код до accepted", "вызов внутри сервиса\nтолько интернет-банк", $tags="new")
+Rel_D(intake, db, "Заявка и accepted", "TDS, SQL\nодна транзакция", $tags="new")
+Rel_D(start, db, "Заявки без отметки старта", "TDS, SQL", $tags="new")
+Rel_L(start, conv, "Создаёт процесс", "HTTPS, старт процесса Camunda\napplicationId и данные заявки", $tags="new")
+Rel_U(conv, decision, "Отдаёт решение", "HTTPS JSON\napplicationId и статус\nповтор, пока пара не записана", $tags="new")
+Rel_D(decision, db, "Пишет статус", "TDS, SQL", $tags="new")
+Rel_R(decision, tpl, "Текст по статусу", "вызов внутри сервиса\nотказ с сайта — без приглашения в отделение", $tags="new")
+Rel_R(tpl, sms, "Просит принять сообщение", "контракт шлюза\nдоставку оператора не ждёт", $tags="new")
+
+note as appsNote
+  Вызова АБС и БКИ у сервиса заявок нет.
+  Повтор с тем же Idempotency-Key вторую заявку не создаёт.
+  Полный скоринг и доставка СМС в ответ accepted не входят.
+end note
+
+SHOW_LEGEND()
+@enduml

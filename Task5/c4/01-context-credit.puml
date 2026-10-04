@@ -1,0 +1,44 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!include tags.inc
+
+LAYOUT_TOP_DOWN()
+
+title Контекст C4 — заявка на кредит онлайн\nУчастники: клиент, сайт, интернет-банк, сервис заявок, сервис ставок,\nконвейер, скоринг, БКИ, СМС-шлюз, АБС, менеджер отделения, сотрудник кредитования.\nСтрелка от вызывающего. Под ней протокол и формат.
+
+Person(client, "Клиент", "Смотрит предложение и отправляет заявку", $tags="existing")
+Person(officer, "Сотрудник кредитования", "Ведёт заявку в конвейере", $tags="existing")
+Person(branch, "Менеджер отделения", "Продолжает ту же заявку в АБС после ночного обмена", $tags="existing")
+
+System(site, "Сайт", "Витрина и форма. Экран в базы не ходит. Паспорт необязателен, кода нет", $tags="existing")
+System(ib, "Интернет-банк", "Экраны и API Gateway. Экран в базы не ходит. clientId из браузера не принимается", $tags="existing")
+System(rates, "Сервис ставок", "Ставка кредита. Своя MS SQL", $tags="existing")
+System(apps, "Сервис заявок", "Контур депозита. Пишет заявку в свою MS SQL и отвечает accepted", $tags="existing")
+System(conv, "Кредитный конвейер", "Camunda, своя Oracle. Онлайн-старт процесса рядом с суточным обменом", $tags="existing")
+System(score, "Скоринг", "Python, своя PostgreSQL. В бюро ходит только он", $tags="existing")
+System(abs, "АБС", "Delphi, Oracle. Заявка приходит ночным обменом. Нового клиента до визита не создаём", $tags="existing")
+
+System_Ext(bki, "БКИ", "Внешнее бюро", $tags="existing")
+System_Ext(sms, "СМС-шлюз", "Уже есть. Ведёт IT-отдел", $tags="existing")
+
+Rel(client, site, "Предложение по ставке и форма заявки", "HTTPS", $tags="new")
+Rel(client, ib, "Список кредитов и форма заявки", "HTTPS", $tags="new")
+Rel(site, rates, "Базовый тариф кредита", "HTTPS JSON через API Gateway\nGET /rates\nclientId не подставляется", $tags="new")
+Rel(site, conv, "Условия продукта", "HTTPS JSON через API Gateway\nчтение витрины\nне старт процесса и не Oracle АБС", $tags="new")
+Rel(site, apps, "Заявка с сайта", "HTTPS JSON через API Gateway\nPOST /credit-applications\nтелефон, Ф. И. О., паспорт если заполнен\nIdempotency-Key, кода нет", $tags="new")
+Rel(ib, rates, "Базовый тариф кредита", "HTTPS JSON через API Gateway\nGET /rates\nclientId не подставляется", $tags="new")
+Rel(ib, score, "Уже посчитанная сумма", "HTTPS JSON через API Gateway\nGET /preapprovals\nclientId из браузера не принимается", $tags="new")
+Rel(ib, apps, "Код и заявка", "HTTPS JSON через API Gateway\nPOST /otp-challenges, POST /otp-checks,\nPOST /credit-applications", $tags="new")
+Rel(apps, conv, "Старт процесса", "HTTPS, старт процесса Camunda\napplicationId\nповтор заявки без отметки старта\nв ответ «принята» не входит", $tags="new")
+Rel(conv, apps, "Статус решения", "HTTPS JSON\napplicationId и статус\nпосле скоринга, у предодобренной — после сотрудника\nповтор, пока статус не записан", $tags="new")
+Rel(apps, sms, "Код и текст статуса", "контракт шлюза\notp, credit_branch, credit_rejected, credit_status\nдоставку не ждём", $tags="new")
+Rel(conv, score, "Расчёт заявки", "HTTPS, API скоринга\nвызов уже есть", $tags="existing")
+Rel(score, bki, "Данные бюро", "REST\nтолько скоринг", $tags="existing")
+Rel(abs, conv, "Заявка в АБС", "обмен баз, раз в сутки\nтот же applicationId", $tags="existing")
+Rel(conv, abs, "Статус заявки", "раз в сутки", $tags="existing")
+Rel(officer, conv, "Ведёт заявку", "работа в Camunda\nпредодобренную — в тот же рабочий день", $tags="existing")
+Rel(branch, abs, "Продолжает заявку из обмена", "десктоп Delphi\nновую создаёт, только если обмен её не принёс", $tags="existing")
+Rel(sms, client, "Код или статус", "SMS", $tags="existing")
+
+SHOW_LEGEND()
+@enduml
