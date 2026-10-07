@@ -1,0 +1,44 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include tags.inc
+
+LAYOUT_TOP_DOWN()
+
+title Компоненты C4 — сервис заявок\nПриём кредитной заявки, синхронный скоринг паспорта, публикация outbox, приём решения, шаблоны СМС.\nСтрелка от вызывающего. Под ней протокол и формат.
+
+System(gw, "API Gateway", "Дверь контура депозита. Своей базы нет. clientId из браузера не принимается", $tags="existing")
+System(score, "Скоринг", "Синхронно только паспорт. Общие данные бюро. В АБС не идёт", $tags="existing")
+System(kafka, "Kafka", "Контур депозита. Топик credit.applications. В монолите не стоит", $tags="existing")
+System(conv, "Кредитный конвейер", "Camunda. Процесс стартует из топика, не по HTTPS", $tags="existing")
+System_Ext(sms, "СМС-шлюз", "Уже есть. Ведёт IT-отдел. Доставку не ждём", $tags="existing")
+
+Container_Boundary(apps, "Сервис заявок") {
+  Component(intake, "Приём кредитной заявки", ".NET", "Паспорт: синхронный скоринг, решение до ответа. Иначе заявка, accepted и outbox одной транзакцией. Обрыв скоринга на 8 с", $tags="new")
+  Component(pub, "Публикация outbox", ".NET", "После ответа пишет credit.applications. В ответ клиенту не входит. decision_unavailable не публикует", $tags="new")
+  Component(decision, "Приём решения", ".NET", "Пишет статус по applicationId. Повтор той же пары второй раз не пишет и вторую СМС не шлёт", $tags="new")
+  Component(tpl, "Шаблоны СМС", ".NET", "otp до accepted и только для интернет-банка. Паспорт: СМС после решения. Дальше credit_status", $tags="new")
+  ComponentDb(db, "База заявок", "MS SQL", "Заявка, сохранённый ответ, outbox, applicationId", $tags="existing")
+}
+
+Rel(gw, intake, "Код и приём заявки", "HTTPS JSON\nPOST /otp-challenges, POST /otp-checks,\nPOST /credit-applications\nневерный код заявку не создаёт", $tags="new")
+Rel(intake, score, "Паспорт на сайте", "HTTPS, API скоринга, синхронно\nобрыв на 8 с\napproved, rejected\nили decision_unavailable\nKafka на этом вызове нет", $tags="new")
+Rel(intake, db, "Заявка и ответ", "TDS, SQL\nодна транзакция до ответа\nрешение или accepted и outbox", $tags="new")
+Rel(intake, pub, "После ответа клиенту", "вызов внутри сервиса\nв ответ клиенту не входит", $tags="new")
+Rel(intake, tpl, "Код и СМС паспорта", "вызов внутри сервиса\notp до accepted\nСМС после решения, не вместо него", $tags="new")
+Rel(pub, db, "Закоммиченный outbox", "TDS, SQL", $tags="new")
+Rel(pub, kafka, "credit.applications", "Kafka\nключ applicationId\nрешение паспорта уже в сообщении", $tags="new")
+Rel(kafka, conv, "Старт процесса", "чтение топика\nповтор applicationId второй процесс не создаёт", $tags="new")
+Rel(conv, decision, "Отдаёт статус", "HTTPS JSON\napplicationId и статус\nповтор, пока пара не записана", $tags="new")
+Rel(decision, db, "Пишет статус", "TDS, SQL", $tags="new")
+Rel(decision, tpl, "Текст по статусу", "вызов внутри сервиса\nповтор той же пары молчит", $tags="new")
+Rel(tpl, sms, "Просит принять сообщение", "контракт шлюза\nдоставку оператора не ждёт", $tags="new")
+
+note as appsNote
+  Вызова АБС и БКИ у сервиса заявок нет.
+  Повтор с тем же Idempotency-Key вторую заявку не создаёт.
+  На паспорте тихого accepted нет.
+  Полный скоринг в P1 не входит. Доставка СМС в ответ клиенту не входит.
+end note
+
+SHOW_LEGEND()
+@enduml

@@ -1,0 +1,106 @@
+@startuml
+title Одна заявка одного клиента\nОтвет идёт экрану через API Gateway. Kafka и АБС этот ответ не ждут.
+
+actor "Клиент" as client
+participant "Экраны" as ui
+participant "API Gateway" as gw
+participant "API профиля" as profile
+participant "Копия счетов" as acc
+participant "Потребитель копии" as snap
+participant "Сервис заявок" as app
+participant "Публикация outbox" as pub
+participant "Сервис ставок" as rates
+participant "СМС-шлюз" as sms
+participant "Kafka" as kafka
+participant "Адаптер АБС" as adapter
+participant "Процедуры учёта" as proc
+database "База учёта" as db
+actor "Бэк-офис" as bo
+
+== Снимок счетов, вне ответа «принята» ==
+
+adapter -> kafka : abs.accounts.snapshot\nснимок счетов
+kafka -> snap : снимок
+snap -> acc : пишет копию\nне через Gateway
+acc --> snap : записано
+
+== Форма, до первого POST ==
+
+ui -> ui : создаёт Idempotency-Key\nи хранит его до показа ответа
+client -> ui : открывает форму
+ui -> gw : GET /accounts
+gw -> profile : GET /profile\nсессия клиента
+profile --> gw : clientId, phone
+gw -> acc : счета этого clientId
+acc --> gw : список
+gw --> ui : список счетов\nOracle на этом шаге нет
+client -> ui : продукт, счёт, сумма
+
+== Код ==
+
+ui -> gw : POST /otp-challenges
+gw -> app : телефон из профиля
+app -> sms : примите шаблон otp к отправке
+sms --> app : шлюз принял\nдоставку оператора не ждём
+app --> gw : challenge создан
+gw --> ui : можно вводить код
+client -> ui : код из СМС
+ui -> gw : POST /otp-checks\nвведённый код
+gw -> app : сверить код
+app -> app : код совпал с challenge
+app --> gw : код верный
+gw --> ui : можно отправлять заявку
+
+== Ответ «принята» ==
+
+ui -> gw : POST /applications\nтот же Idempotency-Key
+gw -> profile : clientId сессии\nбраузер его не подставляет
+gw -> app : заявка + clientId + ключ
+app -> app : без верного кода\nзаявку не пишет
+app -> rates : GET /rates?clientId=\nнапрямую, не через Gateway
+rates --> app : ставка этого клиента
+app -> app : пишет заявку, ответ и outbox\nодной транзакцией
+app --> gw : status=accepted
+gw --> ui : status=accepted
+ui --> client : заявка принята\nKafka и АБС в этом ответе нет
+
+== Публикация после ответа ==
+
+pub -> pub : читает закоммиченную\nстроку outbox
+pub -> kafka : deposit.applications\nключ applicationId
+
+== Адаптер кладёт заявку, человека не ждёт ==
+
+kafka -> adapter : заявка\nне быстрее 5 сообщений/с
+adapter -> adapter : тот же applicationId\nвторую заявку не создаёт
+adapter -> proc : кладёт её в учёт
+note over adapter : шаг закончен\nменеджера адаптер не ждёт\nв Gateway не ходит
+
+== Решение менеджера, адаптера в этом шаге нет ==
+
+alt Менеджер подтверждает
+  bo -> proc : подтверждает эту заявку
+  proc -> db : открывает депозит\nбаза только хранит
+  proc -> sms : rate_confirmed,\nзатем deposit_opened\nнедоставку можно повторить
+else Менеджер отклоняет
+  bo -> proc : отклоняет эту заявку
+  proc -> db : статус rejected\nдепозит не открывается
+end
+
+== Статус той же заявки ==
+
+adapter -> proc : читает opened или rejected
+alt opened
+  adapter -> kafka : deposit.applications.status\nstatus=opened\nключ applicationId
+else rejected
+  adapter -> kafka : deposit.applications.status\nstatus=rejected\nключ applicationId
+end
+kafka -> pub : статус этой заявки
+pub -> pub : записывает статус в базу заявок\nповтор вторую заявку не создаёт
+
+note over sms
+  99,9% включает ответ шлюза «код принят к отправке».
+  Доставка оператором, Kafka и статусные СМС в 99,9% не входят.
+end note
+
+@enduml

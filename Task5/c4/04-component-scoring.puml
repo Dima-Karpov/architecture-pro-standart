@@ -1,0 +1,38 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include tags.inc
+
+LAYOUT_TOP_DOWN()
+
+title Компоненты C4 — скоринг\nЧтение предодобрения, мгновенный расчёт паспорта, упрощённый пересчёт. Своя PostgreSQL.\nСтрелка от вызывающего. Под ней протокол и формат.
+
+System(gw, "API Gateway", "Дверь интернет-банка. clientId берёт у профиля, не из браузера", $tags="existing")
+System(apps, "Сервис заявок", "Синхронно зовёт мгновенный расчёт. Обрыв на 8 с делает он", $tags="existing")
+System(conv, "Кредитный конвейер", "Зовёт упрощённый пересчёт тем же API. Паспорт сюда не приходит", $tags="existing")
+System_Ext(bki, "БКИ", "Внешнее бюро. Сайт и интернет-банк его не вызывают", $tags="existing")
+
+Container_Boundary(score, "Скоринг") {
+  Component(pre, "Чтение предодобрения", "Python", "GET /preapprovals. Уже посчитанная строка. Нового пакетного прогона нет. Результата нет — суммы на витрине нет", $tags="new")
+  Component(instant, "Мгновенный расчёт", "Python", "Вызов от сервиса заявок. Паспорт на сайте. Только общие данные бюро. В АБС не ходит", $tags="new")
+  Component(recalc, "Упрощённый пересчёт", "Python", "В БКИ не ходит. Данные не менялись или расчёта нет: прошлый ответ бюро из PostgreSQL. Изменились: пересчёт по сохранённому ответу бюро. Нет вчерашней выгрузки или ответа бюро: день не обещаем", $tags="new")
+  ComponentDb(pg, "База скоринга", "PostgreSQL", "Предодобрение, прошлый расчёт, результат пересчёта", $tags="existing")
+}
+
+Rel(gw, pre, "Предодобренная сумма", "HTTPS JSON\nGET /preapprovals\nclientId из профиля", $tags="new")
+Rel(pre, pg, "Читает строку", "SQL", $tags="new")
+Rel(apps, instant, "Паспорт на сайте", "HTTPS, API скоринга, синхронно\nобрыв на 8 с делает вызывающий\nKafka на этом вызове нет", $tags="new")
+Rel(instant, bki, "Общие данные бюро", "REST", $tags="existing")
+Rel(instant, pg, "Пишет результат", "SQL", $tags="new")
+Rel(conv, recalc, "Заявка из интернет-банка", "HTTPS, тот же API скоринга", $tags="new")
+Rel(recalc, pg, "Сверяет прошлый расчёт", "SQL", $tags="new")
+
+note as scoreNote
+  Стрелка в БКИ есть только у мгновенного расчёта.
+  Его вызывает сервис заявок, не конвейер.
+  Упрощённый пересчёт берёт прошлый ответ бюро из PostgreSQL.
+  На этих вызовах скоринг в АБС не ходит.
+  Суточный забор клиентов и платежей здесь не нарисован: синхронным вызовом он не становится.
+end note
+
+SHOW_LEGEND()
+@enduml

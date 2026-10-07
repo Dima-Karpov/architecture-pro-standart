@@ -1,0 +1,31 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include tags.inc
+
+LAYOUT_TOP_DOWN()
+
+title Компоненты C4 — расширение кол-центра\nЭкран оператора и адаптер к Gateway. Остальная CRM — соседний контейнер.\nСтрелка от вызывающего. Под ней протокол и формат.
+
+Person(operator, "Оператор банка", "Консультирует по базовым ставкам", $tags="existing")
+
+System_Boundary(cc, "Система кол-центра") {
+  Container(crm, "Остальная CRM", "React.js, Java", "Соседний контейнер. Состав не разбираем", $tags="existing")
+  Container_Boundary(ext, "Расширение ставок") {
+    Component(screen, "Экран оператора", "React.js", "Базы нет. Сервис молчит — на экране «ставки недоступны»", $tags="new")
+    Component(adapter, "Адаптер к Gateway", "Java", "В профиль не ходит и clientId не подставляет", $tags="new")
+  }
+}
+
+System(gw, "API Gateway", "Дверь интернет-банка. Своей базы нет. Секрет роли call-center в конфиге", $tags="existing")
+
+Rel(operator, screen, "Открывает экран ставок", "HTTPS, React.js", $tags="new")
+Rel(screen, adapter, "Текущие ставки", "HTTPS JSON", $tags="new")
+Rel(adapter, gw, "Базовый тариф", "HTTPS JSON\nGET /rates/current\nроль call-center", $tags="new")
+
+note as screenNote
+  Экран не входит в 99,9% пути «заявка принята».
+  Строку из PostgreSQL кол-центра на экран не кладём.
+end note
+
+SHOW_LEGEND()
+@enduml

@@ -1,0 +1,26 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!include tags.inc
+
+LAYOUT_TOP_DOWN()
+
+title Контекст C4 — базовые ставки для кол-центра\nУчастники: оператор банка, кол-центр, API Gateway, сервис ставок, SFTP, партнёр.\nСтрелка от вызывающего. Под ней протокол и формат.
+
+Person(operator, "Оператор банка", "Консультирует по базовым ставкам", $tags="existing")
+Person(partnerOp, "Оператор партнёра", "Читает ставки в системе партнёра", $tags="existing")
+
+System(cc, "Система кол-центра", "Платформа подрядчика. Экран на React.js, адаптер к Gateway на Java. Остальную CRM не вскрываем", $tags="existing")
+System(gw, "API Gateway", "Дверь интернет-банка. Уже есть. Своей базы нет: секрет роли call-center в конфиге", $tags="existing")
+System(rates, "Сервис ставок", "Источник истины. Наружу для консультации только базовый тариф, без clientId", $tags="existing")
+System(sftp, "SFTP банка", "Каталог выгрузки. Учётку только на чтение заводит IT-отдел", $tags="new")
+System_Ext(partner, "Система партнёра", "Внешняя. Разбирает CSV у себя. API не вызывает", $tags="existing")
+
+Rel(operator, cc, "Смотрит базовые ставки", "HTTPS, React.js\nэкран в базы не ходит", $tags="new")
+Rel(cc, gw, "Запрашивает текущий тариф", "HTTPS JSON\nGET /rates/current\nроль call-center", $tags="new")
+Rel(gw, rates, "Читает базовый тариф", "HTTPS JSON\nGET /rates/current\nclientId ответ не расширяет", $tags="new")
+Rel(rates, sftp, "Кладёт CSV базовых ставок", "SSH, CSV\nпосле публикации базовой ставки и раз в сутки", $tags="new")
+Rel(partner, sftp, "Забирает последний файл", "SFTP по SSH\nтолько чтение", $tags="new")
+Rel(partnerOp, partner, "Читает ставки из файла", "как устроено у партнёра\nбанк систему не пишет", $tags="existing")
+
+SHOW_LEGEND()
+@enduml

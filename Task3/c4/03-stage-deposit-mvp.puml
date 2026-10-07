@@ -1,0 +1,88 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include tags.inc
+
+LAYOUT_TOP_DOWN()
+
+title Этап MVP — что уже есть и что добавляем\nЗелёное новое. Серое уже есть. База учёта никого не вызывает.
+
+Person(client, "Клиент", $tags="existing")
+Person(dep, "Бэк-офис депозитов", $tags="existing")
+Person(credit, "Бэк-офис кредитов", $tags="existing")
+Person(branch, "Менеджер отделения", $tags="existing")
+
+System_Boundary(ib, "Интернет-банк") {
+  Container(pay, "Монолит платежей", "ASP.NET MVC 4.5", "Уже есть. Kafka не встраиваем", $tags="existing")
+  ContainerDb(ibDb, "База интернет-банка", "MS SQL", "Сессии. Уже есть", $tags="existing")
+  Container(profileApi, "API профиля", ".NET", "Новый, читает старую базу сессий", $tags="new")
+  Container(ui, "Экраны депозита", "ASP.NET MVC", "Новые", $tags="new")
+  Container(gw, "API Gateway", ".NET", "Новый. Дверь людей. АБС не входит", $tags="new")
+  Container(accounts, "Копия счетов", ".NET", "Новая, для списка на форме", $tags="new")
+  ContainerDb(accDb, "База копии счетов", "MS SQL", "Новая", $tags="new")
+  Container(snap, "Потребитель снимка", ".NET", "Новый. Пишет копию из топика", $tags="new")
+}
+
+System_Boundary(bus, "Интеграционный контур — новое") {
+  ContainerQueue(kafka, "Kafka", "Кластер", "Поднимает нанятый инженер", $tags="new")
+}
+
+System_Boundary(ratesCtx, "Сервис ставок — новое") {
+  Container(rates, "Сервис ставок", ".NET", "Отдельный продукт", $tags="new")
+  ContainerDb(rateDb, "База ставок", "MS SQL", "Своя", $tags="new")
+}
+
+System_Boundary(appsCtx, "Сервис заявок — новое") {
+  Container(apps, "Сервис заявок", ".NET", "Отдельный продукт. Пишет outbox вместе с заявкой", $tags="new")
+  Container(pub, "Публикация outbox", ".NET", "После commit, не в ответе «принята»", $tags="new")
+  ContainerDb(appDb, "База заявок", "MS SQL", "Заявка и outbox", $tags="new")
+}
+
+System_Boundary(abs, "АБС") {
+  Container(delphi, "Клиент АБС", "Delphi", "Уже есть", $tags="existing")
+  Container(adapter, "Адаптер АБС", "Java", "Новый. Читает топик, в Gateway не ходит", $tags="new")
+  Container(proc, "Процедуры учёта", "PL/SQL", "Новые для онлайн-заявки. Зовут СМС-шлюз", $tags="new")
+  ContainerDb(oracle, "База учёта", "Oracle", "Уже есть. Только хранит", $tags="existing")
+}
+
+System_Ext(sms, "СМС-шлюз", "Уже есть", $tags="existing")
+System_Ext(tel, "Телеком-оператор", "Внешний", $tags="existing")
+System(excel, "Excel и почта", "Старый источник ставок", $tags="retire")
+
+Rel(client, ui, "Витрина и заявка", "HTTPS, HTML", $tags="new")
+Rel(dep, ui, "Страница ставок", "HTTPS, HTML", $tags="new")
+Rel(credit, ui, "Базовые ставки", "HTTPS, HTML", $tags="new")
+Rel(ui, gw, "Вызовы экрана", "HTTPS JSON", $tags="new")
+Rel(gw, profileApi, "Сессия", "HTTPS JSON", $tags="new")
+Rel(profileApi, ibDb, "Старая база", "TDS, SQL", $tags="new")
+Rel(pay, ibDb, "Платежи", "TDS, SQL", $tags="existing")
+Rel(pay, oracle, "Прямой SQL платежей", "SQL*Net. Форма депозита так не ходит", $tags="existing")
+Rel(gw, accounts, "Список для клиента", "HTTPS JSON, GET /accounts", $tags="new")
+Rel(snap, accounts, "Снимок из топика", "HTTPS JSON, PUT /accounts", $tags="new")
+Rel(accounts, accDb, "Читает и пишет", "TDS, SQL", $tags="new")
+Rel(gw, rates, "Ставки людей", "HTTPS JSON", $tags="new")
+Rel(gw, apps, "Код и заявка", "HTTPS JSON", $tags="new")
+Rel(apps, rates, "Ставка приёма, напрямую", "HTTPS JSON", $tags="new")
+Rel(apps, sms, "Код otp", "контракт шлюза", $tags="new")
+Rel(apps, appDb, "Заявка и outbox", "TDS, SQL, одна транзакция", $tags="new")
+Rel(pub, kafka, "deposit.applications", "ключ applicationId", $tags="new")
+Rel(kafka, adapter, "Заявка, не быстрее 5/с", "повтор вторую не создаёт", $tags="new")
+Rel(adapter, kafka, "Статус и снимок", "status и abs.accounts.snapshot", $tags="new")
+Rel(kafka, pub, "opened или rejected", "ключ applicationId", $tags="new")
+Rel(kafka, snap, "Снимок счетов", "abs.accounts.snapshot", $tags="new")
+Rel(adapter, proc, "Заявка в учёт", "PL/SQL", $tags="new")
+Rel(dep, delphi, "Подтвердить или отклонить", "Delphi", $tags="existing")
+Rel(delphi, proc, "Решение по заявке", "PL/SQL", $tags="new")
+Rel(proc, oracle, "Запись в хранилище", "SQL", $tags="new")
+Rel(proc, sms, "Статусная СМС", "контракт шлюза", $tags="new")
+Rel(sms, tel, "Доставка", "протокол оператора", $tags="existing")
+Rel(tel, client, "СМС", "SMS", $tags="existing")
+Rel(credit, excel, "Файл со ставкой", "почта, Excel", $tags="retire")
+Rel(excel, dep, "Тот же файл", "почта, Excel", $tags="retire")
+
+note as untouched
+  Раз в сутки — только обмен АБС и кредитного конвейера.
+  Депозитную заявку это не держит. Кредит в этом задании не утверждаем.
+end note
+
+SHOW_LEGEND()
+@enduml
