@@ -4,17 +4,18 @@
 
 LAYOUT_TOP_DOWN()
 
-title Контекст C4 — открытие депозита, MVP\nСистемы: интернет-банк, АБС, сервис ставок, сервис заявок, СМС-шлюз, оператор.\nСтрелка от вызывающего. Под ней протокол и формат.
+title Контекст C4 — открытие депозита, MVP\nСистемы: интернет-банк, АБС, сервис ставок, сервис заявок, Kafka, СМС-шлюз, оператор.\nСтрелка от вызывающего. Под ней протокол и формат.
 
 Person(client, "Клиент", "Уже идентифицирован в интернет-банке", $tags="existing")
 Person(dep, "Бэк-офис депозитов", "Публикует ставки. Проводит или отклоняет заявку в АБС", $tags="existing")
 Person(credit, "Бэк-офис кредитов", "Читает только базовые ставки", $tags="existing")
 Person(branch, "Менеджер отделения", "Идентифицирует нового клиента", $tags="existing")
 
-System(ib, "Интернет-банк", "Уже есть монолит платежей и база сессий. Новое: экраны депозита, API Gateway, API профиля, копия счетов", $tags="existing")
+System(ib, "Интернет-банк", "Уже есть монолит платежей и база сессий. Новое: экраны депозита, API Gateway, API профиля, копия счетов, потребитель снимка", $tags="existing")
 System(rates, "Сервис ставок", "Отдельный продукт. Тариф, персональная ставка, журнал. Своя MS SQL", $tags="new")
-System(apps, "Сервис заявок", "Отдельный продукт. Приём и код. Своя MS SQL. Депозит здесь не открывают", $tags="new")
-System(abs, "АБС", "Delphi, процедуры PL/SQL, Oracle. Депозит открывают или отклоняют только здесь", $tags="existing")
+System(apps, "Сервис заявок", "Отдельный продукт. Приём и код. Своя MS SQL и outbox. Депозит здесь не открывают", $tags="new")
+System(kafka, "Kafka", "Отдельный интеграционный контур. Не в монолите. Топики заявок, статуса и снимка счетов", $tags="new")
+System(abs, "АБС", "Delphi, адаптер на Java, процедуры PL/SQL, Oracle. В API Gateway не ходит", $tags="existing")
 
 System_Ext(sms, "СМС-шлюз", "Уже есть. Ведёт IT-отдел", $tags="existing")
 System_Ext(tel, "Телеком-оператор", "Доставка СМС на телефон", $tags="existing")
@@ -26,10 +27,13 @@ Rel(branch, abs, "Идентифицирует клиента", "десктоп 
 Rel(dep, abs, "Подтверждает или отклоняет эту заявку", "десктоп Delphi, по одной заявке\nне пакет раз в сутки", $tags="existing")
 
 Rel(ib, rates, "Люди читают и публикуют ставки", "HTTPS JSON через API Gateway\nGET /rates, PUT /rates", $tags="new")
-Rel(ib, apps, "Код, сверка, приём и снимок джоба", "HTTPS JSON через API Gateway\nPOST /otp-challenges, POST /otp-checks,\nPOST /applications, PUT /accounts\nключ джоба шлюз не проверяет", $tags="new")
+Rel(ib, apps, "Код, сверка и приём", "HTTPS JSON через API Gateway\nPOST /otp-challenges, POST /otp-checks,\nPOST /applications\nАБС в эту дверь не входит", $tags="new")
 Rel(apps, rates, "Контексты: фиксация ставки", "HTTPS JSON напрямую, не через Gateway\nGET /rates?clientId=", $tags="new")
-Rel(abs, ib, "Джоб вызывает API Gateway", "HTTPS JSON, API-ключ\nзаявки и PUT /accounts\nшлюз ключ не проверяет", $tags="new")
-Rel(apps, ib, "Пишет снимок в копию счетов", "HTTPS JSON напрямую, после сверки ключа\nвне ответа «принята». Хеш только в базе заявок", $tags="new")
+Rel(apps, kafka, "Публикует заявку после commit", "Kafka, топик deposit.applications\nключ applicationId\nне в ответе «принята»", $tags="new")
+Rel(kafka, abs, "Адаптер читает заявку", "не быстрее 5 сообщений/с\nповтор applicationId вторую не создаёт", $tags="new")
+Rel(abs, kafka, "Статус и снимок счетов", "deposit.applications.status,\nabs.accounts.snapshot", $tags="new")
+Rel(kafka, apps, "Статус opened или rejected", "топик deposit.applications.status\nключ applicationId", $tags="new")
+Rel(kafka, ib, "Снимок для копии счетов", "топик abs.accounts.snapshot\nпишет потребитель интернет-банка", $tags="new")
 
 Rel(apps, sms, "Просит принять код к отправке", "контракт шлюза, шаблон otp\nдоставку оператора не ждёт", $tags="new")
 Rel(abs, sms, "Процедура просит статусную СМС", "контракт шлюза\nrate_confirmed, deposit_opened\nпосле открытия, можно повторить", $tags="new")

@@ -1,14 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mxfile host="app.diagrams.net" agent="Cursor" version="22.1.11" type="device">
   <diagram id="it-landscape" name="IT-ландшафт as-is">
-    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1750" pageHeight="1288" math="0" shadow="0">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1750" pageHeight="1370" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="2" value="Банк «Стандарт». IT-ландшафт as-is" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=20;fontStyle=1;fontColor=#1C2833;" vertex="1" parent="1">
           <mxGeometry x="24" y="14" width="1336" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="3" value="Матрица: подразделение (или канал) × возможность 2 уровня. В ячейке — система, которой пользуются сейчас. Пустая ячейка — возможность системой не закрывается." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=12;fontColor=#34495E;" vertex="1" parent="1">
+        <mxCell id="3" value="Матрица: подразделение (или канал) × возможность 2 уровня. В ячейке — система, которой пользуются или которую ведёт это подразделение. Пустая ячейка — возможность системой не закрывается." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=12;fontColor=#34495E;" vertex="1" parent="1">
           <mxGeometry x="24" y="46" width="1336" height="20" as="geometry" />
         </mxCell>
         <mxCell id="4" value="&lt;b&gt;Выноска. Сайт банка&lt;/b&gt; — PHP, React. Маркетинговая витрина: клиент только читает материалы.&lt;br&gt;Ни одну возможность 2 уровня не закрывает. Заявки с сайта и онлайн-операции в as-is отсутствуют." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#FFF8E1;strokeColor=#9A7D0A;size=14;fontSize=12;fontFamily=Helvetica;align=left;spacingLeft=10;spacingRight=8;fontColor=#1C2833;verticalAlign=middle;" vertex="1" parent="1">
@@ -17,7 +17,7 @@
         <mxCell id="ib-callout" value="&lt;b&gt;Выноска. Интернет-банк&lt;/b&gt; — ASP.NET MVC, прямое подключение к БД АБС.&lt;br&gt;В as-is только платежи и текущие счета. Ни одну возможность 2 уровня не закрывает: депозит и накопительный счёт здесь не открываются." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#FFF8E1;strokeColor=#9A7D0A;size=14;fontSize=12;fontFamily=Helvetica;align=left;spacingLeft=10;spacingRight=8;fontColor=#1C2833;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="700" y="74" width="660" height="68" as="geometry" />
         </mxCell>
-        <mxCell id="5" value="&lt;b&gt;Подразделение&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#5D6D7E&quot;&gt;↓ кто пользуется&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1C2833;strokeColor=#1C2833;fontColor=#FFFFFF;fontSize=13;fontFamily=Helvetica;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="5" value="&lt;b&gt;Подразделение&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#5D6D7E&quot;&gt;↓ кто пользуется или ведёт&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1C2833;strokeColor=#1C2833;fontColor=#FFFFFF;fontSize=13;fontFamily=Helvetica;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="24" y="150" width="268" height="108" as="geometry" />
         </mxCell>
         <mxCell id="6" value="Продажи и маркетинг" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1A5276;strokeColor=#1A5276;fontColor=#FFFFFF;fontSize=13;fontStyle=1;fontFamily=Helvetica;align=center;verticalAlign=middle;" vertex="1" parent="1">
@@ -170,32 +170,32 @@
         <mxCell id="55" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBF8;strokeColor=#D5D8DC;" vertex="1" parent="1">
           <mxGeometry x="1182" y="854" width="178" height="228" as="geometry" />
         </mxCell>
-        <mxCell id="56" value="&lt;b&gt;IT-отдел&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6F7;strokeColor=#AEB6BF;fontColor=#1C2833;fontSize=12;fontFamily=Helvetica;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="24" y="1082" width="268" height="100" as="geometry" />
+        <mxCell id="56" value="&lt;b&gt;IT-отдел&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#5D6D7E&quot;&gt;ведёт эти системы&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6F7;strokeColor=#AEB6BF;fontColor=#1C2833;fontSize=12;fontFamily=Helvetica;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="24" y="1082" width="268" height="178" as="geometry" />
         </mxCell>
         <mxCell id="57" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8FBFD;strokeColor=#D5D8DC;" vertex="1" parent="1">
-          <mxGeometry x="292" y="1082" width="178" height="100" as="geometry" />
+          <mxGeometry x="292" y="1082" width="178" height="178" as="geometry" />
         </mxCell>
         <mxCell id="58" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8FBFD;strokeColor=#D5D8DC;" vertex="1" parent="1">
-          <mxGeometry x="470" y="1082" width="178" height="100" as="geometry" />
+          <mxGeometry x="470" y="1082" width="178" height="178" as="geometry" />
         </mxCell>
         <mxCell id="59" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8FBFD;strokeColor=#D5D8DC;" vertex="1" parent="1">
-          <mxGeometry x="648" y="1082" width="178" height="100" as="geometry" />
+          <mxGeometry x="648" y="1082" width="178" height="178" as="geometry" />
         </mxCell>
-        <mxCell id="60" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBF8;strokeColor=#D5D8DC;" vertex="1" parent="1">
-          <mxGeometry x="826" y="1082" width="178" height="100" as="geometry" />
+        <mxCell id="60" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBF8;strokeColor=#C0392B;strokeWidth=2.5;" vertex="1" parent="1">
+          <mxGeometry x="826" y="1082" width="178" height="178" as="geometry" />
         </mxCell>
         <mxCell id="61" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBF8;strokeColor=#D5D8DC;" vertex="1" parent="1">
-          <mxGeometry x="1004" y="1082" width="178" height="100" as="geometry" />
+          <mxGeometry x="1004" y="1082" width="178" height="178" as="geometry" />
         </mxCell>
         <mxCell id="62" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBF8;strokeColor=#D5D8DC;" vertex="1" parent="1">
-          <mxGeometry x="1182" y="1082" width="178" height="100" as="geometry" />
+          <mxGeometry x="1182" y="1082" width="178" height="178" as="geometry" />
         </mxCell>
         <mxCell id="63" value="&lt;b&gt;Команда цифровой трансформации розничного бизнеса&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#7F8C8D&quot;&gt;в текущих процессах системы не использует&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6F7;strokeColor=#AEB6BF;fontColor=#1C2833;fontSize=12;fontFamily=Helvetica;align=left;spacingLeft=10;spacingRight=6;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="24" y="1182" width="268" height="78" as="geometry" />
+          <mxGeometry x="24" y="1260" width="268" height="78" as="geometry" />
         </mxCell>
         <mxCell id="64" value="Нет систем в текущих процессах" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F6F7;strokeColor=#AEB6BF;dashed=1;dashPattern=6 4;fontColor=#7F8C8D;fontSize=12;fontStyle=2;fontFamily=Helvetica;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="292" y="1182" width="1068" height="78" as="geometry" />
+          <mxGeometry x="292" y="1260" width="1068" height="78" as="geometry" />
         </mxCell>
         <mxCell id="66" value="&lt;b&gt;АБС&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#34495E&quot;&gt;продажа продуктов&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#D6EAF8;strokeColor=#1A5276;fontColor=#1C2833;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="300" y="366" width="162" height="46" as="geometry" />
@@ -263,7 +263,7 @@
         <mxCell id="87" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#D6EAF8;strokeColor=#1A5276;fontColor=#1C2833;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="1392" y="216" width="28" height="22" as="geometry" />
         </mxCell>
-        <mxCell id="88" value="&lt;b&gt;Банк&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#34495E'&gt;АБС, интернет-банк, скоринг&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=12;fontColor=#1C2833;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="88" value="&lt;b&gt;Банк&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#34495E'&gt;АБС, интернет-банк, сайт, скоринг&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=12;fontColor=#1C2833;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="1428" y="212" width="288" height="36" as="geometry" />
         </mxCell>
         <mxCell id="89" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#FDEBD0;strokeColor=#B85C00;fontColor=#1C2833;strokeWidth=1.5;" vertex="1" parent="1">
@@ -328,6 +328,42 @@
         </mxCell>
         <mxCell id="gap-b53" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#C0392B;strokeColor=#C0392B;fontColor=#FFFFFF;fontSize=11;fontStyle=1;fontFamily=Helvetica;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="976" y="858" width="22" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="it-sales-ib" value="&lt;b&gt;Интернет-банк&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#34495E&quot;&gt;платежи и текущие счета&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#D6EAF8;strokeColor=#1A5276;fontColor=#1C2833;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1090" width="162" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="it-sales-abs" value="&lt;b&gt;АБС&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#34495E&quot;&gt;продажа продуктов&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#D6EAF8;strokeColor=#1A5276;fontColor=#1C2833;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1140" width="162" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="it-sales-site" value="&lt;b&gt;Сайт банка&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#34495E&quot;&gt;PHP, React&lt;br&gt;только маркетинг&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#D6EAF8;strokeColor=#1A5276;fontColor=#1C2833;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1190" width="162" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="it-cc" value="&lt;b&gt;Система кол-центра&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#34495E&quot;&gt;Java-доработки команды АБС&lt;br&gt;платформа у подрядчика&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#FDEBD0;strokeColor=#B85C00;fontColor=#1C2833;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="478" y="1090" width="162" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="it-dep-abs" value="&lt;b&gt;АБС&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#34495E&quot;&gt;депозит и накопительный счёт&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#D6EAF8;strokeColor=#1A5276;fontColor=#1C2833;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="834" y="1112" width="162" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="it-dep-note" value="интернет-банк депозит не открывает" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=10;fontColor=#C0392B;" vertex="1" parent="1">
+          <mxGeometry x="834" y="1166" width="162" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="it-dep-gap" value="3" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#C0392B;strokeColor=#C0392B;fontColor=#FFFFFF;fontSize=11;fontStyle=1;fontFamily=Helvetica;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="976" y="1086" width="22" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="it-cred-abs" value="&lt;b&gt;АБС&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#34495E&quot;&gt;заявка и зачисление&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#D6EAF8;strokeColor=#1A5276;fontColor=#1C2833;strokeWidth=2.75;" vertex="1" parent="1">
+          <mxGeometry x="1012" y="1090" width="162" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="it-cred-score" value="&lt;b&gt;Скоринг&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#34495E&quot;&gt;пишет IT&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#D6EAF8;strokeColor=#1A5276;fontColor=#1C2833;strokeWidth=2.75;" vertex="1" parent="1">
+          <mxGeometry x="1012" y="1140" width="162" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="it-cred-conv" value="&lt;b&gt;Кредитный конвейер&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#34495E&quot;&gt;обработчики меняет IT&lt;br&gt;внедрение — подрядчик&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#FDEBD0;strokeColor=#B85C00;fontColor=#1C2833;strokeWidth=2.75;" vertex="1" parent="1">
+          <mxGeometry x="1012" y="1190" width="162" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="it-agr-abs" value="&lt;b&gt;АБС&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#34495E&quot;&gt;документы по договору&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#D6EAF8;strokeColor=#1A5276;fontColor=#1C2833;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="1090" width="162" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="it-agr-ib" value="&lt;b&gt;Интернет-банк&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot; color=&quot;#34495E&quot;&gt;текущие счета&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=14;fontSize=11;fontFamily=Helvetica;align=left;spacingLeft=8;spacingRight=4;verticalAlign=middle;fillColor=#D6EAF8;strokeColor=#1A5276;fontColor=#1C2833;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="1140" width="162" height="46" as="geometry" />
         </mxCell>
         <mxCell id="gap-callout" value="&lt;b&gt;Digital-оповещения&lt;/b&gt;&lt;br&gt;СМС есть, открытия нет. АБС инициирует СМС после ставки бэк-офиса.&lt;br&gt;&lt;br&gt;Пока ставка, решение и открытие счёта у бэк-офиса, почты и Excel, интернет-банк депозит и накопительный счёт не открывает." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#FDEDEC;strokeColor=#C0392B;strokeWidth=1.5;size=14;fontSize=12;fontFamily=Helvetica;align=left;spacingLeft=10;spacingRight=8;spacingTop=4;fontColor=#1C2833;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="1378" y="1082" width="352" height="168" as="geometry" />

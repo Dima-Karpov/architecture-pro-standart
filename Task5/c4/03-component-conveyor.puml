@@ -4,19 +4,21 @@
 
 LAYOUT_TOP_DOWN()
 
-title Компоненты C4 — кредитный конвейер\nСтарт создаёт процесс. Статус уходит после скоринга, у предодобренной — после сотрудника.\nЧтение условий — витрина, не старт. Стрелка от вызывающего.
+title Компоненты C4 — кредитный конвейер\nПотребитель топика создаёт процесс. Паспортное решение уже в сообщении.\nЧтение условий — витрина, не старт. Стрелка от вызывающего.
 
 Person(officer, "Сотрудник кредитования", "Ведёт предодобренную заявку в свой рабочий день", $tags="existing")
 
 System(site, "Сайт", "Витрина читает условия. Процесс этим вызовом не стартует", $tags="existing")
-System(apps, "Сервис заявок", "Стартует процесс после accepted и повторяет заявку без отметки. В Oracle конвейера не пишет", $tags="existing")
-System(score, "Скоринг", "Python. Для нового клиента с сайта берёт общие данные бюро и в АБС не идёт", $tags="existing")
+System(kafka, "Kafka", "Топик credit.applications. Прямого HTTPS из сервиса заявок нет", $tags="existing")
+System(apps, "Сервис заявок", "Публикует заявку после ответа. В Oracle конвейера не пишет", $tags="existing")
+System(score, "Скоринг", "Python. Мгновенный расчёт паспорта сюда не приходит", $tags="existing")
 System(abs, "АБС", "Oracle. Заявка из обмена. Новую менеджер создаёт, только если обмен её не принёс", $tags="existing")
 
 Container_Boundary(conv, "Кредитный конвейер") {
   Component(terms, "Чтение условий", "Java", "Витрина сайта. Условия продукта. Не старт процесса и не Oracle АБС", $tags="new")
-  Component(online, "Онлайн-старт процесса", "Camunda", "Создаёт процесс с applicationId. Статус отсюда не уходит. Повтор второй процесс не создаёт", $tags="new")
-  Component(scoreCall, "Вызов скоринга", "Camunda", "Уже есть. Паспорт на сайте — сразу. Иначе тот же API. Паспорта нет — мгновенного вызова нет", $tags="existing")
+  Component(consumer, "Потребитель топика", "Java", "Читает credit.applications и стартует процесс. Повтор applicationId второй процесс не создаёт", $tags="new")
+  Component(online, "Онлайн-старт процесса", "Camunda", "Создаёт процесс с applicationId. Статус отсюда не уходит. Решение паспорта уже в сообщении", $tags="new")
+  Component(scoreCall, "Вызов скоринга", "Camunda", "Уже есть. Заявка из интернет-банка. Паспорт сюда не приходит. Паспорта нет — мгновенного вызова нет", $tags="existing")
   Component(human, "Шаг сотрудника", "Camunda", "Только предодобренная заявка. Вечер и выходной ждут следующего рабочего дня", $tags="existing")
   Component(statusOut, "Отдача статуса", "Camunda", "После скоринга. У предодобренной — после сотрудника. Повтор по applicationId, пока сервис не запишет пару", $tags="new")
   Component(daily, "Суточный обмен с АБС", "обмен баз", "Уже есть. Не чаще раза в сутки. Стык — applicationId, в том числе без одобрения", $tags="existing")
@@ -25,15 +27,16 @@ Container_Boundary(conv, "Кредитный конвейер") {
 
 Rel(site, terms, "Условия продукта", "HTTPS JSON через API Gateway\nне старт процесса", $tags="new")
 Rel(terms, oracle, "Читает условия", "SQL\nвнутри конвейера, не АБС", $tags="new")
-Rel(apps, online, "Старт после accepted", "HTTPS, старт процесса Camunda\napplicationId\nповтор заявки без отметки", $tags="new")
+Rel(kafka, consumer, "Заявка", "топик credit.applications\nключ applicationId", $tags="new")
+Rel(consumer, online, "Старт процесса", "вызов внутри конвейера\nв своём темпе", $tags="new")
 Rel(online, oracle, "Процесс заявки", "SQL\nвнутри конвейера", $tags="new")
-Rel(online, scoreCall, "Если нужен расчёт", "вызов внутри процесса", $tags="new")
-Rel(scoreCall, score, "Расчёт заявки", "HTTPS, API скоринга", $tags="existing")
-Rel(online, statusOut, "Без мгновенного расчёта", "вызов внутри процесса\nпаспорта нет", $tags="new")
+Rel(online, scoreCall, "Заявка из интернет-банка", "вызов внутри процесса", $tags="new")
+Rel(scoreCall, score, "Упрощённый пересчёт", "HTTPS, API скоринга\nв БКИ не идёт", $tags="existing")
+Rel(online, statusOut, "Решение уже есть или паспорта нет", "вызов внутри процесса\nмгновенного расчёта нет", $tags="new")
 Rel(scoreCall, human, "Предодобренная заявка", "вызов внутри процесса\nпосле расчёта", $tags="new")
 Rel(officer, human, "Завершает шаг", "работа в Camunda", $tags="existing")
 Rel(human, statusOut, "После сотрудника", "вызов внутри процесса", $tags="new")
-Rel(scoreCall, statusOut, "Без сотрудника", "вызов внутри процесса\nсайт или нет предодобрения", $tags="new")
+Rel(scoreCall, statusOut, "Без сотрудника", "вызов внутри процесса\nнет предодобрения", $tags="new")
 Rel(statusOut, apps, "Статус решения", "HTTPS JSON\napplicationId и статус\nповтор той же пары", $tags="new")
 Rel(abs, daily, "Заявка в АБС", "обмен баз, раз в сутки\nтот же applicationId", $tags="existing")
 Rel(daily, abs, "Статус заявки", "раз в сутки", $tags="existing")
@@ -41,6 +44,7 @@ Rel(daily, oracle, "Стыкует ту же заявку", "SQL\nвнутри �
 
 note as convNote
   Частоту обмена не меняем.
+  Паспортный скоринг конвейер не вызывает: решение уже в сообщении.
   Новую заявку в АБС создают, только если обмен этот applicationId не принёс.
 end note
 

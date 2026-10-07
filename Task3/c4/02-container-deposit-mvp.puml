@@ -4,7 +4,7 @@
 
 LAYOUT_TOP_DOWN()
 
-title Контейнеры C4 — внутри интернет-банка и внутри АБС\nСервис ставок и сервис заявок — отдельные продукты.\nСтрелка от вызывающего. Под ней протокол и формат.
+title Контейнеры C4 — интернет-банк, Kafka и АБС\nСервис ставок и сервис заявок — отдельные продукты. Шина не в монолите.\nСтрелка от вызывающего. Под ней протокол и формат.
 
 Person(client, "Клиент", "Сессия интернет-банка", $tags="existing")
 Person(dep, "Бэк-офис депозитов", "Ставки через шлюз. Решение по заявке в АБС", $tags="existing")
@@ -12,18 +12,23 @@ Person(credit, "Бэк-офис кредитов", "Только базовые 
 Person(branch, "Менеджер отделения", "Идентификация", $tags="existing")
 
 System_Boundary(ib, "Интернет-банк") {
-  Container(pay, "Монолит платежей", "ASP.NET MVC 4.5", "Платежи и текущие счета. Ядро не меняем.", $tags="existing")
+  Container(pay, "Монолит платежей", "ASP.NET MVC 4.5", "Платежи и текущие счета. Ядро не меняем. Kafka сюда не встраиваем.", $tags="existing")
   ContainerDb(ibDb, "База интернет-банка", "MS SQL", "Сессии и данные платежей. Уже есть.", $tags="existing")
   Container(profileApi, "API профиля", ".NET", "Новый. По сессии отдаёт clientId и телефон. База сессий уже есть.", $tags="new")
   Container(ui, "Экраны депозита", "ASP.NET MVC", "HTML. Базы нет. Idempotency-Key создаёт экран до первого POST.", $tags="new")
-  Container(gw, "API Gateway", ".NET", "Вход людей и джоба. Своей базы нет. Ключ джоба не проверяет.", $tags="new")
-  Container(accounts, "Копия счетов", ".NET", "Список для формы. Снимок принимает от сервиса заявок. Ключ не проверяет.", $tags="new")
+  Container(gw, "API Gateway", ".NET", "Вход людей. Своей базы нет. АБС сюда не ходит.", $tags="new")
+  Container(accounts, "Копия счетов", ".NET", "Список для формы. Снимок принимает от потребителя топика.", $tags="new")
   ContainerDb(accDb, "База копии счетов", "MS SQL", "accountId, маска счёта, clientId. Не Oracle.", $tags="new")
+  Container(snap, "Потребитель снимка", ".NET", "Читает abs.accounts.snapshot и пишет копию. Не монолит и не Gateway.", $tags="new")
+}
+
+System_Boundary(bus, "Интеграционный контур") {
+  ContainerQueue(kafka, "Kafka", "Кластер", "Топики deposit.applications, deposit.applications.status, abs.accounts.snapshot. Поднимает нанятый инженер.", $tags="new")
 }
 
 System_Boundary(abs, "АБС") {
   Container(delphi, "Клиент АБС", "Delphi", "Идентификация. Подтверждение или отклонение заявки.", $tags="existing")
-  Container(job, "Джоб забора", "PL/SQL", "Вызывает API Gateway. В чужие базы не лезет.", $tags="new")
+  Container(adapter, "Адаптер АБС", "Java", "Читает заявку не быстрее 5 сообщений/с. Кладёт в PL/SQL. Публикует статус и снимок.", $tags="new")
   Container(proc, "Процедуры учёта", "PL/SQL", "Открывают или отклоняют депозит. Они зовут СМС-шлюз, не база.", $tags="new")
   ContainerDb(oracle, "База учёта", "Oracle", "Хранилище. Сама никого не вызывает.", $tags="existing")
 }
@@ -34,8 +39,9 @@ System_Boundary(ratesCtx, "Сервис ставок") {
 }
 
 System_Boundary(appsCtx, "Сервис заявок") {
-  Container(apps, "Сервис заявок", ".NET", "Код, приём, проверка API-ключа джоба. После сверки пишет снимок в копию. Депозит не открывает.", $tags="new")
-  ContainerDb(appDb, "База заявок", "MS SQL", "Заявки, ответы повтора, хеш API-ключа. Читает только этот сервис.", $tags="new")
+  Container(apps, "Сервис заявок", ".NET", "Код и приём. Пишет заявку и outbox одной транзакцией. Депозит не открывает.", $tags="new")
+  Container(pub, "Публикация outbox", ".NET", "После commit пишет deposit.applications. Принимает статус. Не монолит.", $tags="new")
+  ContainerDb(appDb, "База заявок", "MS SQL", "Заявки, ответы повтора, outbox. Читает только этот сервис.", $tags="new")
 }
 
 System_Ext(sms, "СМС-шлюз", "Контракт уже есть", $tags="existing")
@@ -53,17 +59,23 @@ Rel(pay, oracle, "Платежи и текущие счета", "SQL*Net, пря
 
 Rel(gw, accounts, "Список для клиента", "HTTPS JSON, GET /accounts", $tags="new")
 Rel(accounts, accDb, "Читает и пишет копию", "TDS, SQL", $tags="new")
+Rel(snap, accounts, "Снимок из топика", "HTTPS JSON, PUT /accounts\nвне ответа «принята»", $tags="new")
 Rel(gw, rates, "Ставки людей", "HTTPS JSON\nGET /rates, PUT /rates\nclientId в PUT — клиент ставки", $tags="new")
-Rel(gw, apps, "Код, приём, забор, снимок", "HTTPS JSON\nPUT /accounts и ключ джоба передаёт как есть", $tags="new")
+Rel(gw, apps, "Код и приём", "HTTPS JSON\nPOST /otp-challenges, POST /otp-checks,\nPOST /applications", $tags="new")
 
 Rel(rates, rateDb, "Тариф и журнал", "TDS, SQL", $tags="new")
 Rel(apps, rates, "Ставка на момент приёма", "HTTPS JSON напрямую\nGET /rates?clientId=", $tags="new")
-Rel(apps, accounts, "Снимок после сверки ключа", "HTTPS JSON напрямую, PUT /accounts\nвне ответа «принята»", $tags="new")
-Rel(apps, appDb, "Заявка, повтор, хеш ключа", "TDS, SQL", $tags="new")
+Rel(apps, appDb, "Заявка, ответ и outbox", "TDS, SQL\nодна транзакция", $tags="new")
+Rel(pub, appDb, "Читает закоммиченный outbox", "TDS, SQL", $tags="new")
 Rel(apps, sms, "Просит принять код", "контракт шлюза, шаблон otp\nдоставку оператора не ждёт", $tags="new")
 
-Rel(job, gw, "Заявки и снимок счетов", "HTTPS JSON, API-ключ\nраз в несколько минут, не в ответе «принята»", $tags="new")
-Rel(job, proc, "Кладёт заявку в учёт", "вызов PL/SQL", $tags="new")
+Rel(pub, kafka, "Заявка после commit", "топик deposit.applications\nключ applicationId", $tags="new")
+Rel(kafka, adapter, "Заявка в темпе АБС", "не быстрее 5 сообщений/с\nповтор applicationId вторую не создаёт", $tags="new")
+Rel(adapter, proc, "Кладёт заявку в учёт", "вызов PL/SQL\nчеловека не ждёт", $tags="new")
+Rel(adapter, kafka, "Статус и снимок", "deposit.applications.status,\nabs.accounts.snapshot", $tags="new")
+Rel(kafka, pub, "Статус заявки", "топик deposit.applications.status\nключ applicationId", $tags="new")
+Rel(kafka, snap, "Снимок счетов", "топик abs.accounts.snapshot", $tags="new")
+
 Rel(branch, delphi, "Идентификация", "десктоп Delphi", $tags="existing")
 Rel(dep, delphi, "Подтверждает или отклоняет", "десктоп Delphi\nодна заявка", $tags="existing")
 Rel(delphi, oracle, "Прежняя работа в базе", "SQL*Net", $tags="existing")

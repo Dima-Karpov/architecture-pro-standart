@@ -12,13 +12,18 @@ Person(credit, "Бэк-офис кредитов", $tags="existing")
 Person(branch, "Менеджер отделения", $tags="existing")
 
 System_Boundary(ib, "Интернет-банк") {
-  Container(pay, "Монолит платежей", "ASP.NET MVC 4.5", "Уже есть", $tags="existing")
+  Container(pay, "Монолит платежей", "ASP.NET MVC 4.5", "Уже есть. Kafka не встраиваем", $tags="existing")
   ContainerDb(ibDb, "База интернет-банка", "MS SQL", "Сессии. Уже есть", $tags="existing")
   Container(profileApi, "API профиля", ".NET", "Новый, читает старую базу сессий", $tags="new")
   Container(ui, "Экраны депозита", "ASP.NET MVC", "Новые", $tags="new")
-  Container(gw, "API Gateway", ".NET", "Новый, своей базы нет", $tags="new")
+  Container(gw, "API Gateway", ".NET", "Новый. Дверь людей. АБС не входит", $tags="new")
   Container(accounts, "Копия счетов", ".NET", "Новая, для списка на форме", $tags="new")
   ContainerDb(accDb, "База копии счетов", "MS SQL", "Новая", $tags="new")
+  Container(snap, "Потребитель снимка", ".NET", "Новый. Пишет копию из топика", $tags="new")
+}
+
+System_Boundary(bus, "Интеграционный контур — новое") {
+  ContainerQueue(kafka, "Kafka", "Кластер", "Поднимает нанятый инженер", $tags="new")
 }
 
 System_Boundary(ratesCtx, "Сервис ставок — новое") {
@@ -27,13 +32,14 @@ System_Boundary(ratesCtx, "Сервис ставок — новое") {
 }
 
 System_Boundary(appsCtx, "Сервис заявок — новое") {
-  Container(apps, "Сервис заявок", ".NET", "Отдельный продукт. Проверяет ключ джоба", $tags="new")
-  ContainerDb(appDb, "База заявок", "MS SQL", "Хеш ключа здесь", $tags="new")
+  Container(apps, "Сервис заявок", ".NET", "Отдельный продукт. Пишет outbox вместе с заявкой", $tags="new")
+  Container(pub, "Публикация outbox", ".NET", "После commit, не в ответе «принята»", $tags="new")
+  ContainerDb(appDb, "База заявок", "MS SQL", "Заявка и outbox", $tags="new")
 }
 
 System_Boundary(abs, "АБС") {
   Container(delphi, "Клиент АБС", "Delphi", "Уже есть", $tags="existing")
-  Container(job, "Джоб забора", "PL/SQL", "Новый. Вызывает Gateway", $tags="new")
+  Container(adapter, "Адаптер АБС", "Java", "Новый. Читает топик, в Gateway не ходит", $tags="new")
   Container(proc, "Процедуры учёта", "PL/SQL", "Новые для онлайн-заявки. Зовут СМС-шлюз", $tags="new")
   ContainerDb(oracle, "База учёта", "Oracle", "Уже есть. Только хранит", $tags="existing")
 }
@@ -51,14 +57,19 @@ Rel(profileApi, ibDb, "Старая база", "TDS, SQL", $tags="new")
 Rel(pay, ibDb, "Платежи", "TDS, SQL", $tags="existing")
 Rel(pay, oracle, "Прямой SQL платежей", "SQL*Net. Форма депозита так не ходит", $tags="existing")
 Rel(gw, accounts, "Список для клиента", "HTTPS JSON, GET /accounts", $tags="new")
-Rel(apps, accounts, "Снимок после сверки ключа", "HTTPS JSON, PUT /accounts\nвне ответа «принята»", $tags="new")
+Rel(snap, accounts, "Снимок из топика", "HTTPS JSON, PUT /accounts", $tags="new")
 Rel(accounts, accDb, "Читает и пишет", "TDS, SQL", $tags="new")
 Rel(gw, rates, "Ставки людей", "HTTPS JSON", $tags="new")
-Rel(gw, apps, "Код, заявка и снимок джоба", "HTTPS JSON, ключ как есть", $tags="new")
+Rel(gw, apps, "Код и заявка", "HTTPS JSON", $tags="new")
 Rel(apps, rates, "Ставка приёма, напрямую", "HTTPS JSON", $tags="new")
 Rel(apps, sms, "Код otp", "контракт шлюза", $tags="new")
-Rel(job, gw, "Заявки и снимок счетов", "HTTPS JSON, API-ключ", $tags="new")
-Rel(job, proc, "Заявка в учёт", "PL/SQL", $tags="new")
+Rel(apps, appDb, "Заявка и outbox", "TDS, SQL, одна транзакция", $tags="new")
+Rel(pub, kafka, "deposit.applications", "ключ applicationId", $tags="new")
+Rel(kafka, adapter, "Заявка, не быстрее 5/с", "повтор вторую не создаёт", $tags="new")
+Rel(adapter, kafka, "Статус и снимок", "status и abs.accounts.snapshot", $tags="new")
+Rel(kafka, pub, "opened или rejected", "ключ applicationId", $tags="new")
+Rel(kafka, snap, "Снимок счетов", "abs.accounts.snapshot", $tags="new")
+Rel(adapter, proc, "Заявка в учёт", "PL/SQL", $tags="new")
 Rel(dep, delphi, "Подтвердить или отклонить", "Delphi", $tags="existing")
 Rel(delphi, proc, "Решение по заявке", "PL/SQL", $tags="new")
 Rel(proc, oracle, "Запись в хранилище", "SQL", $tags="new")

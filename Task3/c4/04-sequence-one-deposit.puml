@@ -1,28 +1,28 @@
 @startuml
-title Одна заявка одного клиента\nОтвет идёт экрану через API Gateway. АБС этот ответ не ждёт.
+title Одна заявка одного клиента\nОтвет идёт экрану через API Gateway. Kafka и АБС этот ответ не ждут.
 
 actor "Клиент" as client
 participant "Экраны" as ui
 participant "API Gateway" as gw
 participant "API профиля" as profile
 participant "Копия счетов" as acc
+participant "Потребитель копии" as snap
 participant "Сервис заявок" as app
+participant "Публикация outbox" as pub
 participant "Сервис ставок" as rates
 participant "СМС-шлюз" as sms
-participant "Джоб учёта" as job
+participant "Kafka" as kafka
+participant "Адаптер АБС" as adapter
 participant "Процедуры учёта" as proc
 database "База учёта" as db
 actor "Бэк-офис" as bo
 
 == Снимок счетов, вне ответа «принята» ==
 
-job -> gw : PUT /accounts\nснимок счетов, API-ключ
-gw -> app : снимок и ключ как есть\nшлюз ключ не проверяет
-app -> app : сверяет хеш ключа\nв своей базе
-app -> acc : записывает снимок\nвне ответа «принята»
-acc --> app : записано
-app --> gw : принято
-gw --> job : принято
+adapter -> kafka : abs.accounts.snapshot\nснимок счетов
+kafka -> snap : снимок
+snap -> acc : пишет копию\nне через Gateway
+acc --> snap : записано
 
 == Форма, до первого POST ==
 
@@ -59,22 +59,24 @@ gw -> app : заявка + clientId + ключ
 app -> app : без верного кода\nзаявку не пишет
 app -> rates : GET /rates?clientId=\nнапрямую, не через Gateway
 rates --> app : ставка этого клиента
-app -> app : пишет заявку и ответ\nодной транзакцией
+app -> app : пишет заявку, ответ и outbox\nодной транзакцией
 app --> gw : status=accepted
 gw --> ui : status=accepted
-ui --> client : заявка принята\nАБС в этом ответе нет
+ui --> client : заявка принята\nKafka и АБС в этом ответе нет
 
-== Заход джоба: кладёт заявку, человека не ждёт ==
+== Публикация после ответа ==
 
-job -> gw : GET /applications?status=accepted\nAPI-ключ
-gw -> app : ключ как есть
-app -> app : сверяет хеш ключа\nв своей базе
-app --> gw : эта заявка
-gw --> job : эта заявка
-job -> proc : кладёт её в учёт
-note over job : заход закончен\nменеджера джоб не ждёт
+pub -> pub : читает закоммиченную\nстроку outbox
+pub -> kafka : deposit.applications\nключ applicationId
 
-== Решение менеджера, джоба в этом шаге нет ==
+== Адаптер кладёт заявку, человека не ждёт ==
+
+kafka -> adapter : заявка\nне быстрее 5 сообщений/с
+adapter -> adapter : тот же applicationId\nвторую заявку не создаёт
+adapter -> proc : кладёт её в учёт
+note over adapter : шаг закончен\nменеджера адаптер не ждёт\nв Gateway не ходит
+
+== Решение менеджера, адаптера в этом шаге нет ==
 
 alt Менеджер подтверждает
   bo -> proc : подтверждает эту заявку
@@ -85,20 +87,20 @@ else Менеджер отклоняет
   proc -> db : статус rejected\nдепозит не открывается
 end
 
-== Следующий заход джоба: ack ==
+== Статус той же заявки ==
 
-job -> proc : читает opened или rejected
+adapter -> proc : читает opened или rejected
 alt opened
-  job -> gw : POST /applications/{id}/ack\nstatus=opened
+  adapter -> kafka : deposit.applications.status\nstatus=opened\nключ applicationId
 else rejected
-  job -> gw : POST /applications/{id}/ack\nstatus=rejected
+  adapter -> kafka : deposit.applications.status\nstatus=rejected\nключ applicationId
 end
-gw -> app : ack, ключ как есть
-app -> app : статус заявки\nповтор вторую не создаёт
+kafka -> pub : статус этой заявки
+pub -> pub : записывает статус в базу заявок\nповтор вторую заявку не создаёт
 
 note over sms
   99,9% включает ответ шлюза «код принят к отправке».
-  Доставка оператором и статусные СМС в 99,9% не входят.
+  Доставка оператором, Kafka и статусные СМС в 99,9% не входят.
 end note
 
 @enduml

@@ -10,29 +10,30 @@ sunday are closed
 ' T26 ждёт T3 и T17. T28 ждёт T17 и идёт рядом с T26: T26 его не держит.
 ' T33 ждёт T13. Шлюз уже есть.
 ' T27 ждёт ещё и T5. Маршруты Gateway уже стоят, на этой схеме их нет.
-' T32 ждёт T31 и T29. T34 ждёт T27 и T39, не T31. T35 ждёт T27 и T28.
+' T32 ждёт T31 и T29: публикация после ответа, на паспорте — после решения.
+' T34 ждёт T27 и T39, не T31. T35 ждёт T27 и T28.
 ' T37 ждёт T32, T33, T34, T35, T36 и T30. В прод этой задачей ничего не выкладываем.
 
 -- Интернет-банк --
 [T26 POST /credit-applications] starts 2027-04-05 and lasts 4 weeks
 [T27 Маршруты Gateway] starts at [T26 POST /credit-applications]'s end and lasts 3 weeks
 [T35 Экраны интернет-банка] starts at [T27 Маршруты Gateway]'s end and lasts 4 weeks
-[T32 Приём решения] lasts 3 weeks
+[T32 Публикация и статус] lasts 3 weeks
 
 -- Сайт --
 [T34 Экран сайта] lasts 4 weeks
 
 -- Скоринг --
 [T28 GET /preapprovals] starts 2027-04-05 and lasts 3 weeks
-[T29 Мгновенный скоринг] starts at [T28 GET /preapprovals]'s end and lasts 4 weeks
-[T30 Упрощённый пересчёт] starts at [T29 Мгновенный скоринг]'s end and lasts 3 weeks
+[T29 Синхронный скоринг] starts at [T28 GET /preapprovals]'s end and lasts 4 weeks
+[T30 Упрощённый пересчёт] starts at [T29 Синхронный скоринг]'s end and lasts 3 weeks
 
 -- Конвейер --
 [T39 Чтение условий] starts 2027-04-05 and lasts 3 weeks
-[T31 Старт процесса Camunda] starts at [T26 POST /credit-applications]'s end and lasts 4 weeks
+[T31 Старт из топика] starts at [T26 POST /credit-applications]'s end and lasts 4 weeks
 
 -- АБС --
-[T36 Ночной обмен] starts at [T31 Старт процесса Camunda]'s end and lasts 3 weeks
+[T36 Ночной обмен] starts at [T31 Старт из топика]'s end and lasts 3 weeks
 
 -- СМС --
 [T33 Шаблоны СМС] starts 2027-04-05 and lasts 2 weeks
@@ -43,13 +44,13 @@ sunday are closed
 -- Прод --
 [T38 Выкладка в прод] lasts 2 weeks
 
-[T32 Приём решения] starts at [T31 Старт процесса Camunda]'s end
-[T32 Приём решения] starts at [T29 Мгновенный скоринг]'s end
+[T32 Публикация и статус] starts at [T31 Старт из топика]'s end
+[T32 Публикация и статус] starts at [T29 Синхронный скоринг]'s end
 [T35 Экраны интернет-банка] starts at [T28 GET /preapprovals]'s end
 [T34 Экран сайта] starts at [T39 Чтение условий]'s end
 [T34 Экран сайта] starts at [T27 Маршруты Gateway]'s end
 [T37 Проверка цепочки, не прод] starts at [T34 Экран сайта]'s end
-[T37 Проверка цепочки, не прод] starts at [T32 Приём решения]'s end
+[T37 Проверка цепочки, не прод] starts at [T32 Публикация и статус]'s end
 [T37 Проверка цепочки, не прод] starts at [T35 Экраны интернет-банка]'s end
 [T37 Проверка цепочки, не прод] starts at [T36 Ночной обмен]'s end
 [T37 Проверка цепочки, не прод] starts at [T30 Упрощённый пересчёт]'s end
